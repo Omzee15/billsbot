@@ -278,9 +278,16 @@ async def handle_text_message(update: Update, db: Session):
                     email = text.strip()
                     
                     if state["range_type"] == "all":
-                        # Send all bills immediately
-                        await update.message.reply_text(f"📧 Sending all bills to {email}...")
-                        await telegram_service._send_email_report(user_id, email, None, None, update.message)
+                        # Send all bills with immediate feedback
+                        await update.message.reply_text(f"📧 Sending all bills to {email}...🔄")
+                        
+                        # Send email in background
+                        import asyncio
+                        asyncio.create_task(
+                            telegram_service._send_email_report_with_notification(
+                                user_id, email, None, None, update.message.chat_id
+                            )
+                        )
                     else:
                         # Ask for start date
                         email_state[user_id] = {
@@ -339,8 +346,17 @@ async def handle_text_message(update: Update, db: Session):
                     # Send email with date range
                     email = state.get("email")
                     start_date = state.get("start_date")
-                    await update.message.reply_text(f"📧 Sending bills to {email}...")
-                    await telegram_service._send_email_report(user_id, email, start_date, end_date, update.message)
+                    
+                    # Send immediate feedback
+                    await update.message.reply_text(f"📧 Sending bills to {email}...🔄")
+                    
+                    # Send email in background (fire and forget)
+                    import asyncio
+                    asyncio.create_task(
+                        telegram_service._send_email_report_with_notification(
+                            user_id, email, start_date, end_date, update.message.chat_id
+                        )
+                    )
             
             # Check if user is in export date input flow
             elif user_id in export_state:

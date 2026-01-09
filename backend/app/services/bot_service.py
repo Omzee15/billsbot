@@ -496,14 +496,11 @@ Use `/export 2026-01-01 2026-12-31` to download your bills!
                 "Example: `john@example.com`"
             )
     
-    async def _send_email_report(self, user_id: str, email: str, start_date: Optional[str], end_date: Optional[str], query_or_update):
+    async def _send_email_report_with_notification(self, user_id: str, email: str, start_date: Optional[str], end_date: Optional[str], chat_id: int):
         """
-        Send email report with bills
+        Send email report with bills and send notification when done
         """
         try:
-            # Determine if this is a query (callback) or message update
-            is_query = hasattr(query_or_update, 'message')
-            
             # Call backend API
             backend_url = "http://localhost:8000/bills/email/send"
             payload = {
@@ -515,33 +512,24 @@ Use `/export 2026-01-01 2026-12-31` to download your bills!
             if end_date:
                 payload["end_date"] = end_date
             
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(backend_url, json=payload)
                 
                 if response.status_code == 200:
-                    success_msg = f"✅ Bills sent successfully to {email}!"
-                    if is_query:
-                        await query_or_update.message.reply_text(success_msg)
-                    else:
-                        await query_or_update.reply_text(success_msg)
-                    
-                    # Clean up email state
-                    if user_id in email_state:
-                        del email_state[user_id]
+                    success_msg = f"✅ Email sent successfully to {email}!"
+                    await self.application.bot.send_message(chat_id=chat_id, text=success_msg)
                 else:
-                    error_msg = "❌ Failed to send email. Please try again."
-                    if is_query:
-                        await query_or_update.message.reply_text(error_msg)
-                    else:
-                        await query_or_update.reply_text(error_msg)
+                    error_msg = f"❌ Failed to send email. Please try again later."
+                    await self.application.bot.send_message(chat_id=chat_id, text=error_msg)
                     
         except Exception as e:
             logger.error(f"Error sending email report: {str(e)}", exc_info=True)
-            error_msg = "❌ Error sending email. Please try again."
-            if hasattr(query_or_update, 'message'):
-                await query_or_update.message.reply_text(error_msg)
-            else:
-                await query_or_update.reply_text(error_msg)
+            error_msg = f"❌ Email service error: {str(e)}\n\nPlease try again later."
+            await self.application.bot.send_message(chat_id=chat_id, text=error_msg)
+        finally:
+            # Clean up email state
+            if user_id in email_state:
+                del email_state[user_id]
     
     async def parse_natural_date(self, date_text: str) -> Optional[str]:
         """

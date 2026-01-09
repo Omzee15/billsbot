@@ -1,0 +1,43 @@
+services:
+  backend:
+    build: .
+    container_name: bill-ai-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - bill_images:/app/bills
+      - exports:/app/exports
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/bills_db
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_WEBHOOK_URL=${TELEGRAM_WEBHOOK_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - ENVIRONMENT=production
+    restart: unless-stopped
+
+  db:
+    image: postgres:15
+    container_name: bill-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bills_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "15432:5432"
+    restart: unless-stopped
+
+volumes:
+  bill_images:
+  exports:
+  pgdata:

@@ -61,7 +61,7 @@ echo ""
 
 # Set Telegram webhook
 echo "🔗 Setting Telegram webhook..."
-BOT_TOKEN="8500941834:AAGTfvS5k7OiaRQ2V0QOZSHfdFTrflhgTaU"
+BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-your_bot_token_here}"
 WEBHOOK_URL="$NGROK_URL/webhook/telegram"
 
 WEBHOOK_RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/setWebhook?url=$WEBHOOK_URL")

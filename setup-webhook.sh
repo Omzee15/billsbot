@@ -28,7 +28,7 @@ if [ "$NGROK_URL" = "ERROR" ] || [ -z "$NGROK_URL" ]; then
     echo "  ngrok http 8000"
     echo ""
     echo "Then copy the HTTPS URL and run:"
-    echo "  curl -X POST \"https://api.telegram.org/bot8500941834:AAGTfvS5k7OiaRQ2V0QOZSHfdFTrflhgTaU/setWebhook?url=YOUR_NGROK_URL/webhook/telegram\""
+    echo "  curl -X POST \"https://api.telegram.org/bot\$TELEGRAM_BOT_TOKEN/setWebhook?url=YOUR_NGROK_URL/webhook/telegram\""
     exit 1
 fi
 
@@ -36,7 +36,7 @@ echo "✅ ngrok URL: $NGROK_URL"
 echo ""
 
 # Set Telegram webhook
-BOT_TOKEN="8500941834:AAGTfvS5k7OiaRQ2V0QOZSHfdFTrflhgTaU"
+BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-your_bot_token_here}"
 WEBHOOK_URL="$NGROK_URL/webhook/telegram"
 
 echo "Setting webhook to: $WEBHOOK_URL"

@@ -343,7 +343,7 @@ Use `/export 2026-01-01 2026-12-31` to download your bills!
             if end_date:
                 params["end_date"] = end_date
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.get(backend_url, params=params)
                 
                 if response.status_code == 200:
@@ -515,7 +515,7 @@ Use `/export 2026-01-01 2026-12-31` to download your bills!
             if end_date:
                 payload["end_date"] = end_date
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(backend_url, json=payload)
                 
                 if response.status_code == 200:

@@ -42,19 +42,33 @@ class TelegramBotService:
         Handle /start command
         """
         welcome_message = """
-🧾 Welcome to BillBot!
+🧾 **Welcome to BillBot!**
 
 I help you manage your bills automatically. Here's what I can do:
 
-📷 **Send Bill Image** - Just send me a photo of any bill/receipt
-📊 **Export to Excel** - Use `/export YYYY-MM-DD YYYY-MM-DD`
-📧 **Email Reports** - Use `/email your@email.com YYYY-MM-DD YYYY-MM-DD`
-📋 **View Bills** - Use `/list` to see your recent bills
+📷 **Send Bill Image**
+Just send me a photo or drag-drop any bill/receipt. I'll:
+  • Parse shop name, location, items, and total
+  • Let you add/skip/auto-generate description
+  • Save to database
 
-**Example:**
-`/export 2026-01-01 2026-01-31`
+📊 **Export to Excel** - Use `/export`
+  • Choose "Export All" or "Date Range"
+  • Use natural dates: `12 jan`, `1 January 2026`
+  • Use `NA` for open-ended ranges
+  • Get Excel with Bills, Items, and Summary sheets
 
-Just send me a bill image to get started!
+📧 **Email Reports** - Use `/email`
+  • Choose "Email All" or "Date Range"
+  • Enter your email address
+  • Same flexible date options as export
+  • Receive Excel file via email
+
+📋 **View Bills** - Use `/list`
+  • See your recent 10 bills
+  • Shows shop, total, date, and description
+
+**Just send me a bill image to get started!**
         """
         await update.message.reply_text(welcome_message)
     

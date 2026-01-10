@@ -517,15 +517,18 @@ Use `/export 2026-01-01 2026-12-31` to download your bills!
                 
                 if response.status_code == 200:
                     success_msg = f"✅ Email sent successfully to {email}!"
-                    await self.application.bot.send_message(chat_id=chat_id, text=success_msg)
+                    await self.bot.send_message(chat_id=chat_id, text=success_msg)
                 else:
                     error_msg = f"❌ Failed to send email. Please try again later."
-                    await self.application.bot.send_message(chat_id=chat_id, text=error_msg)
+                    await self.bot.send_message(chat_id=chat_id, text=error_msg)
                     
         except Exception as e:
             logger.error(f"Error sending email report: {str(e)}", exc_info=True)
             error_msg = f"❌ Email service error: {str(e)}\n\nPlease try again later."
-            await self.application.bot.send_message(chat_id=chat_id, text=error_msg)
+            try:
+                await self.bot.send_message(chat_id=chat_id, text=error_msg)
+            except:
+                pass  # Silently fail if can't send error message
         finally:
             # Clean up email state
             if user_id in email_state:

@@ -27,8 +27,8 @@ aiohttp==3.9.1
 # Environment Variables
 python-dotenv==1.0.0
 
-# Email
-aiosmtplib==3.0.1
+# Email (SendGrid)
+sendgrid==6.11.0
 
 # Utilities
 pydantic==2.5.3

@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 import uuid
 from datetime import datetime
+from pdf2image import convert_from_path
+from PIL import Image
 
 from database import get_db
 from models import Bill
@@ -134,19 +136,75 @@ Use /export to download your bills as Excel!
         await update.message.reply_text("❌ Error processing your bill. Please try again.")
 
 
+def convert_pdf_to_image(pdf_path: str, output_path: str) -> str:
+    """
+    Convert PDF pages to a single stitched image
+    
+    Args:
+        pdf_path: Path to the PDF file
+        output_path: Path where the output image should be saved
+        
+    Returns:
+        Path to the created image file
+    """
+    try:
+        # Convert PDF to images (one per page)
+        images = convert_from_path(pdf_path, dpi=200)
+        
+        if not images:
+            raise ValueError("No pages found in PDF")
+        
+        # If single page, just save it
+        if len(images) == 1:
+            images[0].save(output_path, 'JPEG')
+            return output_path
+        
+        # Multiple pages: stitch them vertically
+        widths = [img.width for img in images]
+        heights = [img.height for img in images]
+        
+        # Use the maximum width and sum of heights
+        max_width = max(widths)
+        total_height = sum(heights)
+        
+        # Create a new image with the combined dimensions
+        stitched_image = Image.new('RGB', (max_width, total_height), 'white')
+        
+        # Paste each page one below the other
+        y_offset = 0
+        for img in images:
+            # Center the image if it's narrower than max_width
+            x_offset = (max_width - img.width) // 2
+            stitched_image.paste(img, (x_offset, y_offset))
+            y_offset += img.height
+        
+        # Save the stitched image
+        stitched_image.save(output_path, 'JPEG')
+        logger.info(f"Stitched {len(images)} PDF pages into single image: {output_path}")
+        
+        return output_path
+        
+    except Exception as e:
+        logger.error(f"Error converting PDF to image: {str(e)}")
+        raise
+
+
 async def handle_document_message(update: Update, db: Session):
     """
-    Handle document messages (images sent as files via drag-drop)
+    Handle document messages (images/PDFs sent as files via drag-drop)
     """
     try:
         document = update.message.document
+        user_id = str(update.message.from_user.id)
         
-        # Check if it's an image file
-        if document.mime_type and document.mime_type.startswith('image/'):
-            user_id = str(update.message.from_user.id)
-            
+        # Check if it's an image or PDF file
+        is_image = document.mime_type and document.mime_type.startswith('image/')
+        is_pdf = document.mime_type == 'application/pdf' or (document.file_name and document.file_name.lower().endswith('.pdf'))
+        
+        if is_image or is_pdf:
             # Send processing message
-            await update.message.reply_text("📸 Received! Processing your bill...")
+            file_type = "PDF" if is_pdf else "image"
+            await update.message.reply_text(f"📸 Received! Processing your {file_type}...")
             
             # Get the document file
             file = await telegram_service.bot.get_file(document.file_id)
@@ -157,12 +215,29 @@ async def handle_document_message(update: Update, db: Session):
             
             # Generate unique filename
             bill_id = str(uuid.uuid4())
-            # Get extension from mime type or filename
-            ext = document.file_name.split('.')[-1] if '.' in document.file_name else 'jpg'
-            file_path = user_folder / f"bill_{bill_id}.{ext}"
             
-            # Download the file
-            await file.download_to_drive(str(file_path))
+            if is_pdf:
+                # Download PDF first
+                pdf_path = user_folder / f"bill_{bill_id}.pdf"
+                await file.download_to_drive(str(pdf_path))
+                
+                # Convert PDF to stitched image
+                final_image_path = user_folder / f"bill_{bill_id}.jpg"
+                try:
+                    convert_pdf_to_image(str(pdf_path), str(final_image_path))
+                    # Delete the PDF after conversion
+                    pdf_path.unlink()
+                    file_path = final_image_path
+                except Exception as e:
+                    logger.error(f"Failed to convert PDF: {str(e)}")
+                    await update.message.reply_text("❌ Failed to process PDF. Please try again or send as images.")
+                    return
+            else:
+                # Get extension from mime type or filename
+                ext = document.file_name.split('.')[-1] if '.' in document.file_name else 'jpg'
+                file_path = user_folder / f"bill_{bill_id}.{ext}"
+                # Download the file
+                await file.download_to_drive(str(file_path))
             
             # Parse the bill with OCR using backend API
             backend_url = "http://localhost:8000/bills/parse-only"
@@ -231,7 +306,7 @@ async def handle_document_message(update: Update, db: Session):
                 else:
                     await update.message.reply_text("❌ Failed to process bill. Please try again.")
         else:
-            await update.message.reply_text("Please send an image file (JPG, PNG, etc.)")
+            await update.message.reply_text("Please send an image file (JPG, PNG, etc.) or a PDF document.")
             
     except Exception as e:
         logger.error(f"Error handling document: {str(e)}", exc_info=True)
